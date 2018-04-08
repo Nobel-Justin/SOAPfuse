@@ -8,24 +8,19 @@ use SOAPfuse::SVG_Radian_System qw/$PI $deg2rad get_coordinate_on_circle/;
 use SOAPfuse::SVG_Font qw/show_text_on_arc/;
 require Exporter;
 
+
 #----- systemic variables -----
-our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-my ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
+our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION, $AUTHOR, $MAIL);
 @ISA = qw(Exporter);
 @EXPORT = qw($PI $deg2rad %COLOR_DB draw_circle_seg get_coordinate_on_circle);
 push @EXPORT , qw();
 @EXPORT_OK = qw($PI $deg2rad %COLOR_DB);
 %EXPORT_TAGS = ( DEFAULT => [qw()],
                  OTHER   => [qw()]);
-
-$MODULE_NAME = 'SVG_Radian_System_Elements';
 #----- version --------
-$VERSION = "0.25";
-$DATE = '2018-02-09';
-
-#----- author -----
-$AUTHOR = 'Wenlong Jia';
-$EMAIL = 'wenlongkxm@gmail.com';
+$VERSION = "0.23";
+$AUTHOR = "Wenlong Jia";
+$MAIL = 'wenlongkxm@gmail.com';
 
 # url: http://www.december.com/html/spec/colorsvg.html
 our %COLOR_DB=(
@@ -66,9 +61,11 @@ sub draw_circle_seg{
                                               o (centre)
 
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# cx, [100]
 		# cy, [100]
@@ -99,7 +96,6 @@ sub draw_circle_seg{
 		# arrow_color, ["gray"]
 		# arrow_ori, ["clockwise"] or "anti-clockwise"
 		# arrow_span_perct, [9]
-		# arrow_maxArcLen, [optional]
 		--- text ---
 		# text, [""]
 		# font_family, ["Arial"]
@@ -120,17 +116,13 @@ sub draw_circle_seg{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like
-		   subroutine( $SVG_object, cx=>120, cy=>120 );
+		   subroutine( $SVG_object, { cx=>120, cy=>120 } );
 
 		Note: It can also draw an arc when inner_radius equals to outer_radius.
 
 	';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -161,7 +153,6 @@ sub draw_circle_seg{
 	## arrows
 	my $arrow_num 		= $Options_Href->{arrow_num} || 0;
 	my $arrow_span_pt 	= $Options_Href->{arrow_span_perct} || 9;
-	my $arrow_maxArcLen = $Options_Href->{arrow_maxArcLen};
 	my $arrow_color		= $Options_Href->{arrow_color} || 'gray';
 	my $arrow_ori		= $Options_Href->{arrow_ori} || 'clockwise';
 	## text
@@ -175,10 +166,10 @@ sub draw_circle_seg{
 
 	#---- Segment
 	# pos
-	my ($x1,$y1) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$start_rad, radius=>$inner_radius); # inner
-	my ($x2,$y2) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$start_rad, radius=>$outer_radius); # outer
-	my ($x3,$y3) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>($start_rad + $rad_size), radius=>$outer_radius); # outer
-	my ($x4,$y4) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>($start_rad + $rad_size), radius=>$inner_radius); # inner
+	my ($x1,$y1) = get_coordinate_on_circle($cx,$cy,$start_rad, $inner_radius); # inner
+	my ($x2,$y2) = get_coordinate_on_circle($cx,$cy,$start_rad, $outer_radius); # outer
+	my ($x3,$y3) = get_coordinate_on_circle($cx,$cy,$start_rad + $rad_size, $outer_radius); # outer
+	my ($x4,$y4) = get_coordinate_on_circle($cx,$cy,$start_rad + $rad_size, $inner_radius); # inner
 	# flag
 	my $flag_1 = ($rad_size > $PI) ? 1 : 0;
 
@@ -260,8 +251,7 @@ sub draw_circle_seg{
 		';
 
 		my $radius_p78 = ($inner_radius + $outer_radius) / 2;
-		my $arrow_span_rad = min( $rad_size * $arrow_span_pt / 100 , acos($inner_radius/$radius_p78) / 2 );
-		   $arrow_span_rad = min( $arrow_span_rad, $arrow_maxArcLen / $radius_p78 ) if( defined $arrow_maxArcLen );
+		my $arrow_span_rad = min($rad_size * $arrow_span_pt / 100 , acos($inner_radius/$radius_p78) / 2);
 		my $arrow_inner_span_rad = $arrow_span_rad / 2;
 		my $arrow_rad_step = $rad_size * int(100 / ($arrow_num+1)) / 100;
 		# draw arrow
@@ -269,10 +259,10 @@ sub draw_circle_seg{
 			my $radian_p56 = $start_rad + $i * $arrow_rad_step;
 			my $radian_p7  = $radian_p56 + $arrow_span_rad * (($arrow_ori eq 'clockwise')?1:-1);
 			my $radian_p8  = $radian_p56 + $arrow_inner_span_rad * (($arrow_ori eq 'clockwise')?1:-1);
-			my ($x5,$y5) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$radian_p56, radius=>$inner_radius); # inner
-			my ($x6,$y6) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$radian_p56, radius=>$outer_radius); # outer
-			my ($x7,$y7) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$radian_p7,  radius=>$radius_p78); # middle
-			my ($x8,$y8) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$radian_p8,  radius=>$radius_p78); # middle
+			my ($x5,$y5) = get_coordinate_on_circle($cx,$cy,$radian_p56, $inner_radius); # inner
+			my ($x6,$y6) = get_coordinate_on_circle($cx,$cy,$radian_p56, $outer_radius); # outer
+			my ($x7,$y7) = get_coordinate_on_circle($cx,$cy,$radian_p7, $radius_p78); # middle
+			my ($x8,$y8) = get_coordinate_on_circle($cx,$cy,$radian_p8, $radius_p78); # middle
 			my $path = "M$x5,$y5,L$x8,$y8,L$x6,$y6,L$x7,${y7}Z";
 			$$SVG_object->path(
 								d=>$path,
@@ -284,25 +274,24 @@ sub draw_circle_seg{
 
 	# text
 	if(length($text) != 0){
-		show_text_on_arc(
-							$SVG_object,
-							cx=>$cx,
-							cy=>$cy,
-							radius=>($inner_radius + $outer_radius) / 2,
-							anchor_degree=>($start_rad + $rad_size / 2) / $deg2rad,
-							text_anchor=>'middle',
-							text=>$text,
-							font_family=>$font_family,
-							font_size=>$font_size,
-							text_col=>$text_col,
-							height_adjust=>1,
-							height_limit=>(0.8 * ($outer_radius - $inner_radius)),
-							degree_limit=>(0.8 * $rad_size / $deg2rad),
-							text_to_center=>$text_to_center,
-							text_rotate_degree=>$text_rotate_degree,
-							features=>$text_features_Href,
-							draw_bool=>$draw_bool
-						);
+		show_text_on_arc( $SVG_object,
+				{	cx=>$cx,
+					cy=>$cy,
+					radius=>($inner_radius + $outer_radius) / 2,
+					anchor_degree=>($start_rad + $rad_size / 2) / $deg2rad,
+					text_anchor=>'middle',
+					text=>$text,
+					font_family=>$font_family,
+					font_size=>$font_size,
+					text_col=>$text_col,
+					height_adjust=>1,
+					height_limit=>(0.8 * ($outer_radius - $inner_radius)),
+					degree_limit=>(0.8 * $rad_size / $deg2rad),
+					text_to_center=>$text_to_center,
+					text_rotate_degree=>$text_rotate_degree,
+					features=>$text_features_Href,
+					draw_bool=>$draw_bool
+				});
 	}
 }
 
@@ -329,9 +318,11 @@ sub draw_a_sector{
                       (centre)
 
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# cx, [100]
 		# cy, [100]
@@ -357,15 +348,11 @@ sub draw_a_sector{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like
-		   subroutine( $SVG_object, cx=>120, cy=>120 );
+		   subroutine( $SVG_object, { cx=>120, cy=>120 } );
 
 	';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -393,8 +380,8 @@ sub draw_a_sector{
 
 	#--- Sector
 	# pos
-	my ($x1,$y1) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$start_rad, radius=>$radius);
-	my ($x2,$y2) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>($start_rad + $rad_size), radius=>$radius);
+	my ($x1,$y1) = get_coordinate_on_circle($cx,$cy,$start_rad, $radius);
+	my ($x2,$y2) = get_coordinate_on_circle($cx,$cy,$start_rad + $rad_size, $radius);
 	# flag
 	my $flag_1 = ($rad_size > $PI) ? 1 : 0;
 	my $flag_2 = 1; # clockwise

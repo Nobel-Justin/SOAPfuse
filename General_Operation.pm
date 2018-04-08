@@ -30,6 +30,8 @@ our ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
 			  read_ins_report_for_ins
 			  read_ins_report_for_trimmed_length
 			  write_fasta_file
+			  getStrUnitRepeatTime
+			  file_exist
 			/;
 @EXPORT_OK = qw();
 %EXPORT_TAGS = ( DEFAULT => [qw()],
@@ -37,8 +39,8 @@ our ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
 
 $MODULE_NAME = 'General_Operation';
 #----- version --------
-$VERSION = "0.20";
-$DATE = '2016-07-10';
+$VERSION = "0.24";
+$DATE = '2018-04-04';
 
 #----- author -----
 $AUTHOR = 'Wenlong Jia';
@@ -62,6 +64,7 @@ my @functoion_list = qw/
 						warn_and_exit
 						stout_and_sterr
 						write_fasta_file
+						getStrUnitRepeatTime
 					 /;
 
 #-------- try to merge genome region ---------#
@@ -257,7 +260,8 @@ sub sample2patient{
 sub trible_run_for_success{
 	my ($command,$type,$verbose_Href) = @_;
 	# cmd_Nvb, esdo_Nvb, log_vb
-	
+
+	$command = 'set -o pipefail; ' . $command;
 	if(!defined($verbose_Href) || !($verbose_Href->{cmd_Nvb}||0)){
 		warn "$command\n";
 	}
@@ -514,9 +518,16 @@ sub warn_and_exit{
 
 #----------- warn out the content and exit -----------
 sub stout_and_sterr{
-	my ($content) = @_;
+	# options
+	shift if ($_[0] =~ /::$MODULE_NAME/);
+	my $content = shift @_;
+	my %parm = @_;
+	my $stderr = $parm{stderr} || 0;
+
+	# default STDOUT sololy
 	print STDOUT "$content";
-	warn "$content";
+	# STDERR additionally, when stated
+	warn "$content" if( $stderr );
 }
 
 #--- write fa file, can extend some base at the end ---
@@ -558,6 +569,104 @@ sub write_fasta_file{
 		}
 	}
 	close FA;
+}
+
+#-------- calculate StrTest has how many StrUnit exact-match (allow partial) ---------#
+sub getStrUnitRepeatTime{
+	shift @_ if($_[0] =~ /::$MODULE_NAME/);
+	my %parm = @_;
+	my $StrTest = $parm{StrTest};
+	my $StrUnit = $parm{StrUnit};
+	my $TestEnd = $parm{TestEnd} || 'start'; # or 'end'
+	my $CaseIns = $parm{CaseIns} || 0; # case in-sensitive
+	my $MustInt = $parm{MustInt} || 0; # repeat time must be integer
+	# my $CharAvo = $parm{CharAvo}; # Array-ref chars to avoid (not-implemented)
+
+	# check
+	if(    !defined $StrTest
+		|| !defined $StrUnit || length($StrUnit) == 0
+		|| ( $TestEnd ne 'start' && $TestEnd ne 'end' )
+	){
+		warn_and_exit "<ERROR>\tWrong inputs in getStrUnitRepeatTime.\n"
+							."\tStrTest: $StrTest\n"
+							."\tStrUnit: $StrUnit\n"
+							."\tTestEnd: $TestEnd\n"
+							."\tCaseIns: $CaseIns\n";
+	}
+
+	# case in-sensitive
+	if( $CaseIns ){
+		$$_ = uc($$_) for ( \$StrTest, \$StrUnit );
+	}
+
+	# test
+	my $repeat_time = 0;
+	my $StrTestLen = length($StrTest);
+	my $StrUnitLen = length($StrUnit);
+	while( $StrTestLen >= $StrUnitLen ){
+		my $subStrTest;
+		if( $TestEnd eq 'start' ){
+			$subStrTest = substr($StrTest, 0, $StrUnitLen);
+			$StrTest = substr($StrTest, $StrUnitLen);
+		}
+		elsif( $TestEnd eq 'end' ){
+			$subStrTest = substr($StrTest, -1 * $StrUnitLen);
+			$StrTest = substr($StrTest, 0, -1 * $StrUnitLen);
+		}
+		# same as the StrUnit
+		if( $subStrTest eq $StrUnit ){
+			$repeat_time++;
+			$StrTestLen -= $StrUnitLen;
+		}
+		else{
+			return 0; # not match
+		}
+	}
+	# whether StrTest has remains?
+	if( $StrTestLen == 0 ){
+		return $repeat_time;
+	}
+	elsif( $MustInt ){
+		return 0; # do not allow paritial StrUnit
+	}
+	else{
+		my $subStrUnit;
+		if( $TestEnd eq 'start' ){
+			$subStrUnit = substr($StrUnit, 0, $StrTestLen);
+		}
+		elsif( $TestEnd eq 'end' ){
+			$subStrUnit = substr($StrUnit, -1 * $StrTestLen);
+		}
+		# same as the partial StrUnit
+		if( $StrTest eq $subStrUnit ){
+			$repeat_time += $StrTestLen / $StrUnitLen;
+			return $repeat_time;
+		}
+		else{
+			return 0;
+		}
+	}
+}
+
+#--- verify existence of file/softlink
+sub file_exist{
+	shift @_ if($_[0] =~ /::$MODULE_NAME/);
+	my %parm = @_;
+	my $filePath = $parm{filePath};
+	my $alert = $parm{alert} || 0;
+
+	$filePath = abs_path( $filePath );
+	if(    !defined $filePath
+		|| !-e $filePath
+		|| `file $filePath` =~ /broken symbolic link/
+	){
+		warn_and_exit "<ERROR>\tFile does not exist:\n"
+							."\t$filePath\n" if( $alert );
+		return 0;
+	}
+	else{
+		return 1;
+	}
 }
 
 1; ## tell the perl script the successful access of this module.

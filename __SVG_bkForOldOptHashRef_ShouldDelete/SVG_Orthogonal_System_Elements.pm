@@ -10,23 +10,17 @@ require Exporter;
 
 
 #----- systemic variables -----
-our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-my ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
+our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION, $AUTHOR, $MAIL);
 @ISA = qw(Exporter);
 @EXPORT = qw(draw_a_parallelogram draw_a_triangle draw_a_arrow draw_a_ellipse);
 push @EXPORT , qw();
 @EXPORT_OK = qw();
 %EXPORT_TAGS = ( DEFAULT => [qw()],
                  OTHER   => [qw()]);
-
-$MODULE_NAME = 'SVG_Orthogonal_System_Elements';
 #----- version --------
-$VERSION = "0.34";
-$DATE = '2018-03-04';
-
-#----- author -----
-$AUTHOR = 'Wenlong Jia';
-$EMAIL = 'wenlongkxm@gmail.com';
+$VERSION = "0.3";
+$AUTHOR = "Wenlong Jia";
+$MAIL = 'wenlongkxm@gmail.com';
 
 #--------- functions in this pm --------#
 my @functoion_list = (
@@ -61,9 +55,11 @@ sub draw_a_parallelogram{
             (x4,y4) o----------------------o (x3,y3)
                             #4 side
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# x, [100]
 		# y, [100]
@@ -87,18 +83,11 @@ sub draw_a_parallelogram{
 		# draw_bool, [1]
 		            Sometimes, user may want just pre-calculate some values for displaying adjustment, set this option as
 		            zero will disable the SVG drawing.
-		--- inner marker line ----
-		# inner_line_ori, [none]
-		                You can use "h" for horizontal and "v" for vertical, or "h,v".
-		# inner_line_wid, [1]
-		# inner_line_col, ["black"]
 		--- text ----
 		# text_fill, [""]
 		# text_col, ["black"]
 		# text_font_size, [12]
 		# font_size_auto_adjust, [0]
-		# font_size_auto_adjust_wRatio, [1]
-		# font_size_auto_adjust_hRatio. [1]
 		# text_free_rotate, [0]
 		# text_font_fam, ["Times New Roman"]
 		--- rotate ---
@@ -107,27 +96,15 @@ sub draw_a_parallelogram{
 		                 It is the x you supplied.
 		# rotate_center_y, [y]
 		                 It is the y you supplied.
-		--- Gradient color fill ---
-		# colorGradOrit, [optional]
-		                 You can use "h" for horizontal and "v" for vertical.
-		# colorGradStColor, [red]
-		# colorGradStOpacity, [0]
-		# colorGradEdColor, [red]
-		# colorGradEdOpacity, [1]
-
 		--- help ----
 		# usage_print, [0]
 
 		Use options in anonymous hash, like
-		   subroutine( $SVG_object, x=>120, y=>120 );
+		   subroutine( $SVG_object, { x=>120, y=>120 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -153,29 +130,17 @@ sub draw_a_parallelogram{
 	my $bold_side		= $Options_Href->{bold_side} || '0';
 	my $bold_width		= $Options_Href->{bold_width} || 3;
 	my $draw_bool       = (defined($Options_Href->{draw_bool})) ? $Options_Href->{draw_bool} : 1;
-	## inner mark line
-	my $inner_line_ori	= $Options_Href->{inner_line_ori}; # 'h' or 'v' or 'h,v'
-	my $inner_line_wid	= $Options_Href->{inner_line_wid} || 1;
-	my $inner_line_col	= $Options_Href->{inner_line_col} || 'black';
 	## text
 	my $text_fill 		= $Options_Href->{text_fill} || '';
 	my $text_col	 	= $Options_Href->{text_col} || 'black';
 	my $text_font_size  = $Options_Href->{text_font_size} || 12;
 	my $text_font_fam   = $Options_Href->{text_font_fam} || 'Times New Roman';
 	my $fz_auto_adjust  = $Options_Href->{font_size_auto_adjust} || 0;
-	my $fz_auto_adjust_wRatio  = $Options_Href->{font_size_auto_adjust_wRatio} || 1;
-	my $fz_auto_adjust_hRatio  = $Options_Href->{font_size_auto_adjust_hRatio} || 1;
 	my $text_free_rotate = $Options_Href->{text_free_rotate} || 0;
 	## rotate
 	my $rotate_degree	= $Options_Href->{rotate_degree} || 0;
 	my $rotate_center_x	= $Options_Href->{rotate_center_x} || $x;
 	my $rotate_center_y	= $Options_Href->{rotate_center_y} || $y;
-	# Gradient color fill
-	my $colorGradOrit = $Options_Href->{colorGradOrit}; # h:horizontal; v:vertical
-	my $colorGradStColor = $Options_Href->{colorGradStColor} || 'red';
-	my $colorGradStOpacity = $Options_Href->{colorGradStOpacity} || 0;
-	my $colorGradEdColor = $Options_Href->{colorGradEdColor} || 'red';
-	my $colorGradEdOpacity = $Options_Href->{colorGradEdOpacity} || 1;
 
 	# draw parallelogram
 	my $up_left_radian = $upleft_angle * $deg2rad;
@@ -195,72 +160,26 @@ sub draw_a_parallelogram{
 		$boud_width = $bold_width;
 		$bold_side = '0'; # pretend no need to be bold again.
 	}
-
-	# color fill
-	if( defined $colorGradOrit && $colorGradOrit =~ /^[hv]$/ ){
-		my ($x1, $y1, $x2, $y2) =   $colorGradOrit eq 'h'
-								  ? ('0%', '0%', '100%', '0%')
-								  : ('0%', '0%', '0%', '100%');
-		# create pattern
-		my $color_pattern = $$SVG_object->pattern();
-		my $color_grad = $color_pattern->gradient( id=>'color_grad', x1=>$x1, y1=>$y1, x2=>$x2, y2=>$y2 );
-		$color_grad->stop( offset=>'0%',   style=>{'stop-color'=>$colorGradStColor,'stop-opacity'=>$colorGradStOpacity} );
-		$color_grad->stop( offset=>'100%', style=>{'stop-color'=>$colorGradEdColor,'stop-opacity'=>$colorGradEdOpacity} );
-		# use the color-pattern
-		$fill_col = 'url(#color_grad)';
-	}
-
 	# square
 	$$SVG_object->path(
-						d => $path,
-						stroke => $boud_color,
-						'stroke-width' => $boud_width,
-						'stroke-dasharray' => $boud_dasharray,
-						fill => $fill_col,
-						opacity => $opacity,
-						transform => "rotate($rotate_degree,$rotate_center_x,$rotate_center_y)"
+						d=>$path,
+						stroke=>$boud_color,
+						'stroke-width'=>$boud_width,
+						'stroke-dasharray'=>$boud_dasharray,
+						fill=>$fill_col,
+						opacity=>$opacity,
+						transform=>"rotate($rotate_degree,$rotate_center_x,$rotate_center_y)"
 					  ) if($draw_bool);
-
-	# inner mark line
-	if( defined $inner_line_ori ){
-		for my $inLine_ori (split /,/, $inner_line_ori){
-			my ($inLine_x1, $inLine_y1);
-			my ($inLine_x2, $inLine_y2);
-			if( $inLine_ori eq 'h' ){
-				$inLine_x1 = ($x1 + $x4) / 2;
-				$inLine_y1 = ($y1 + $y4) / 2;
-				$inLine_x2 = ($x2 + $x3) / 2;
-				$inLine_y2 = ($y2 + $y3) / 2;
-			}
-			elsif( $inLine_ori eq 'v' ){
-				$inLine_x1 = ($x1 + $x2) / 2;
-				$inLine_y1 = ($y1 + $y2) / 2;
-				$inLine_x2 = ($x4 + $x3) / 2;
-				$inLine_y2 = ($y4 + $y3) / 2;
-			}
-			# show inner mark line
-			$$SVG_object->line(
-								x1 => $inLine_x1,
-								y1 => $inLine_y1,
-								x2 => $inLine_x2,
-								y2 => $inLine_y2,
-								stroke => $inner_line_col,
-								'stroke-width' => $inner_line_wid,
-								opacity => $opacity,
-								transform => "rotate($rotate_degree,$rotate_center_x,$rotate_center_y)"
-							  ) if($draw_bool);
-		}
-	}
 
 	# bold sides
 	if($bold_side !~ /^0$/){
 		# sharing style
 		my $style_Href = {
-						   stroke => $boud_color,
-						   'stroke-width' => $bold_width,
-						   'stroke-linecap' => 'round',
-						   opacity => $opacity,
-						   transform => "rotate($rotate_degree,$rotate_center_x,$rotate_center_y)"
+						   stroke=>$boud_color,
+						   'stroke-width'=>$bold_width,
+						   'stroke-linecap'=>'round',
+						   opacity=>$opacity,
+						   transform=>"rotate($rotate_degree,$rotate_center_x,$rotate_center_y)"
 						 };
 		# index vs array
 		my @pos_pool = ([$x1,$y1], [$x2,$y2], [$x3,$y3], [$x4,$y4]);
@@ -270,11 +189,9 @@ sub draw_a_parallelogram{
 			my ($x_1,$y_1) = @{$pos_pool[$single_bold_side-2]};
 			my ($x_2,$y_2) = @{$pos_pool[$single_bold_side-1]};
 			$$SVG_object->line(
-								x1 => $x_1,
-								y1 => $y_1,
-								x2 => $x_2,
-								y2 => $y_2,
-								style => $style_Href
+								x1=>$x_1,y1=>$y_1,
+								x2=>$x_2,y2=>$y_2,
+								style=>$style_Href
 							  ) if($draw_bool);
 		}
 	}
@@ -284,25 +201,24 @@ sub draw_a_parallelogram{
 		my $text_x = $x;
 		my $text_y = $y;
 		my $text_rotate_degree = ($text_free_rotate)?0:$rotate_degree;
-		my $hight_ceiling = $fz_auto_adjust ? sin($up_left_radian)*$lt_rt_side_len*$fz_auto_adjust_hRatio : 0;
-		my $width_ceiling = $fz_auto_adjust ? min(abs($x4-$x2), abs($x1-$x3))*$fz_auto_adjust_wRatio : 0;
-		show_text_in_line(
-							$SVG_object,
-							text_x => $text_x,
-							text_y => $text_y,
-							text => $text_fill,
-							font_family => $text_font_fam,
-							font_size => $text_font_size,
-							text_col => $text_col,
-							text_anchor => 'middle',
-							height_adjust => 1,
-							height_limit => $hight_ceiling,
-							width_limit => $width_ceiling,
-							rotate_degree => $text_rotate_degree,
-							rotate_center_x => $rotate_center_x,
-							rotate_center_y => $rotate_center_y,
-							draw_bool => $draw_bool
-						 );
+		my $hight_ceiling = $fz_auto_adjust ? sin($up_left_radian)*$lt_rt_side_len : 0;
+		my $width_ceiling = $fz_auto_adjust ? min(abs($x4-$x2), abs($x1-$x3)) : 0;
+		show_text_in_line( $SVG_object,
+						  { text_x=>$text_x,
+							text_y=>$text_y,
+							text=>$text_fill,
+							font_family=>$text_font_fam,
+							font_size=>$text_font_size,
+							text_col=>$text_col,
+							text_anchor=>'middle',
+							height_adjust=>1,
+							height_limit=>$hight_ceiling,
+							width_limit=>$width_ceiling,
+							rotate_degree=>$text_rotate_degree,
+							rotate_center_x=>$rotate_center_x,
+							rotate_center_y=>$rotate_center_y,
+							draw_bool=>$draw_bool
+						  });
 	}
 
 	# return the height and width
@@ -332,9 +248,11 @@ sub draw_a_triangle{
            (x1,y1) o-------------------o (x3,y3)
                          #3 side
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# x, [100]
 		# y, [100]
@@ -373,15 +291,11 @@ sub draw_a_triangle{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like
-		   subroutine( $SVG_object, x=>120, y=>120 );
+		   subroutine( $SVG_object, { x=>120, y=>120 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -478,9 +392,8 @@ sub draw_a_triangle{
 		my $text_rotate_degree = ($text_free_rotate)?0:$rotate_degree;
 		my $hight_ceiling = $fz_auto_adjust ? $height : 0;
 		my $width_ceiling = $fz_auto_adjust ? $half_bot_side : 0;
-		show_text_in_line(
-							$SVG_object,
-							text_x=>$text_x,
+		show_text_in_line( $SVG_object,
+						  { text_x=>$text_x,
 							text_y=>$text_y,
 							text=>$text_fill,
 							font_family=>$text_font_fam,
@@ -494,7 +407,7 @@ sub draw_a_triangle{
 							rotate_center_x=>$rotate_center_x,
 							rotate_center_y=>$rotate_center_y,
 							draw_bool=>$draw_bool
-						 );
+						  });
 	}
 
 	# return the height and width
@@ -522,9 +435,11 @@ sub draw_a_arrow{
                      /   /       \   \
             (x1,y1) o----         ----o (x3,y3)
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# x, [100]
 		# y, [100]
@@ -549,15 +464,12 @@ sub draw_a_arrow{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( $SVG_object, x=>120, y=>120 );
+		   subroutine( $SVG_object, { x=>120, y=>120 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	#my ($x,$y,$edge_len,$fill_text,$fill_col,$rotate_degree,$text_font_size) = @_;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -617,9 +529,11 @@ sub draw_a_ellipse{
 
 	my $Usage = '
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# cx, [100]
 		# cy, [100]
@@ -653,15 +567,11 @@ sub draw_a_ellipse{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( $SVG_object, cx=>120, cy=>120 );
+		   subroutine( $SVG_object, { cx=>120, cy=>120 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -728,9 +638,8 @@ sub draw_a_ellipse{
 		my $text_y = $cy;
 		my $hight_ceiling = $fz_auto_adjust ? $radius_b : 0;
 		my $width_ceiling = $fz_auto_adjust ? $radius : 0;
-		show_text_in_line(
-							$SVG_object,
-							text_x=>$text_x,
+		show_text_in_line( $SVG_object,
+						  { text_x=>$text_x,
 							text_y=>$text_y,
 							text=>$text_fill,
 							font_family=>$text_font_fam,
@@ -744,7 +653,7 @@ sub draw_a_ellipse{
 							rotate_center_x=>$text_rotate_center_x,
 							rotate_center_y=>$text_rotate_center_y,
 							draw_bool=>$draw_bool
-						 );
+						  });
 	}
 
 	# return the height and width

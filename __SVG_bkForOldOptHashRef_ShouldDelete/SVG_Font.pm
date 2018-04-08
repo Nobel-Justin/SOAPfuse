@@ -7,39 +7,28 @@ use List::Util qw[min max sum];
 use SOAPfuse::SVG_Radian_System qw/$deg2rad get_coordinate_on_circle draw_an_arc/;
 require Exporter;
 
+
 #----- systemic variables -----
-our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-my ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
+our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION, $AUTHOR, $MAIL);
 @ISA = qw(Exporter);
 @EXPORT = qw(%Font_Size);
 push @EXPORT , qw();
-@EXPORT_OK = qw/
-				%Font_Size
-				confirm_transform_ratio
-				show_text_in_line
-				show_text_on_arc
-				get_size_of_text_to_show
-			   /;
+@EXPORT_OK = qw(%Font_Size confirm_transform_ratio show_text_in_line show_text_on_arc get_size_of_text_to_show);
 %EXPORT_TAGS = ( DEFAULT => [qw()],
                  OTHER   => [qw()]);
-
-$MODULE_NAME = 'SVG_Font';
 #----- version --------
-$VERSION = "0.28";
-$DATE = '2018-03-04';
-
-#----- author -----
-$AUTHOR = 'Wenlong Jia';
-$EMAIL = 'wenlongkxm@gmail.com';
+$VERSION = "0.24";
+$AUTHOR = "Wenlong Jia";
+$MAIL = 'wenlongkxm@gmail.com';
 
 #--------- functions in this pm --------#
-my @functoion_list = qw/
-						confirm_transform_ratio
-						show_text_in_line
-						show_text_on_arc
-						get_size_of_text_to_show
-						decode_char_size_symbo
-					  /;
+my @functoion_list = (
+						'confirm_transform_ratio',
+						'show_text_in_line',
+						'show_text_on_arc',
+						'get_size_of_text_to_show',
+						'decode_char_size_symbol'
+					 );
 
 our %Font_Size=(
 				# https://docs.google.com/spreadsheets/d/1aI5WUYR_FV0PQeZ228j1qWpa_8Xnv4x5uIjNjpnpMcE/edit?usp=sharing
@@ -846,9 +835,11 @@ sub confirm_transform_ratio{
 
 	my $Usage = '
 
-		Use as subroutine(key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# font_family, ["Arial"]
 		# font_size, [12]
@@ -856,19 +847,16 @@ sub confirm_transform_ratio{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( font_family=>"Times", font_size=>15 );
+		   subroutine( { font_family=>"Times", font_size=>15 } );
 
 		It will return a array contains,
 		   (font_fam_basal, transforming_ratio)
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($Options_Href) = @_;
 
-	if( scalar(@_) == 0 || $Options_Href->{usage_print} ){
+	if(!defined($Options_Href) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
 		warn "$Usage";
 		warn "\n";
@@ -938,9 +926,11 @@ sub show_text_in_line{
 
 	my $Usage = '
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# text_x, [100]
 		# text_y, [100]
@@ -950,12 +940,8 @@ sub show_text_in_line{
 		# text_anchor, ["middle"]
 		# text_col, ["black"]
 		# height_adjust, [0]
-		                Times of half-height to move the text down.
 		# height_limit, [0]
 		# width_limit, [0]
-		# width_limit_fontsizeTorotate, [disabled]
-		             Text will try to rotate when width_limit adjuested fontsize meets this value.
-		             note that positive value for clockwise, negative value for anti-clockwise.
 		# rotate_degree, [0]
 		# rotate_center_x, [text_x]
 		                 It is the x you supplied.
@@ -979,15 +965,11 @@ sub show_text_in_line{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( $SVG_object, text_x=>"10", text_y=>"20", font_family=>"Times", font_size=>15, height_limit=>20 );
+		   subroutine( $SVG_object, { text_x=>"10", text_y=>"20", font_family=>"Times", font_size=>15, height_limit=>20 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -1007,7 +989,6 @@ sub show_text_in_line{
 	my $height_adjust = $Options_Href->{height_adjust} || 0;
 	my $height_limit = $Options_Href->{height_limit} || 0;
 	my $width_limit = $Options_Href->{width_limit} || 0;
-	my $width_limit_fontsizeTorotate = $Options_Href->{width_limit_fontsizeTorotate};
 	my $rotate_degree = $Options_Href->{rotate_degree} || 0;
 	my $rotate_center_x	= $Options_Href->{rotate_center_x} || $text_x;
 	my $rotate_center_y	= $Options_Href->{rotate_center_y} || $text_y;
@@ -1020,24 +1001,25 @@ sub show_text_in_line{
 	if(scalar(keys %$features_Href) != 0){
 		my $Big_R = 1E6;
 
-		my $arc_text_info_Aref =  show_text_on_arc(
-													$SVG_object,
-													cx=>$text_x,
-													cy=>$text_y + $Big_R,
-													radius=>$Big_R,
-													text=>$text,
-													font_family=>$font_family,
-													font_size=>$font_size,
-													text_col=>$text_col,
-													text_anchor=>$text_anchor,
-													height_adjust=>$height_adjust,
-													height_limit=>$height_limit,
-													degree_limit=> atan( $width_limit / $Big_R ) / $deg2rad,
-													rotate_degree=>$rotate_degree,
-													rotate_center_x=>$rotate_center_x,
-													rotate_center_y=>$rotate_center_y,
-													features=>$features_Href,
-													draw_bool=>$draw_bool
+		my $arc_text_info_Aref =  show_text_on_arc( $SVG_object,
+													{
+														cx=>$text_x,
+														cy=>$text_y + $Big_R,
+														radius=>$Big_R,
+														text=>$text,
+														font_family=>$font_family,
+														font_size=>$font_size,
+														text_col=>$text_col,
+														text_anchor=>$text_anchor,
+														height_adjust=>$height_adjust,
+														height_limit=>$height_limit,
+														degree_limit=> atan( $width_limit / $Big_R ) / $deg2rad,
+														rotate_degree=>$rotate_degree,
+														rotate_center_x=>$rotate_center_x,
+														rotate_center_y=>$rotate_center_y,
+														features=>$features_Href,
+														draw_bool=>$draw_bool
+													}
 												  );
 		$text_height = $arc_text_info_Aref->[0];
 		$text_width  = $arc_text_info_Aref->[1] * $Big_R;
@@ -1051,11 +1033,10 @@ sub show_text_in_line{
 	my $GET_PROPER_TEXT_SIZE_cross_bool = 0;
 	GET_PROPER_TEXT_SIZE: {
 		($anchor_height_Aref, $anchor_width_Aref) = 
-			&get_size_of_text_to_show(
-										font_family=>$font_family,
-										font_size=>$font_size,
-										text=>$text
-									 );
+		&get_size_of_text_to_show({ font_family=>$font_family,
+									font_size=>$font_size,
+									text=>$text
+								  });
 		$text_height = $anchor_height_Aref->[0] - $anchor_height_Aref->[1]; # above - below, because below is negative value.
 		$text_width  = $anchor_width_Aref->[0] + $anchor_width_Aref->[1]; # char width + gap width
 		# check the limitation
@@ -1077,43 +1058,9 @@ sub show_text_in_line{
 			}
 		}
 	}
-	# try to apply rotate to mend the too small font_size
-	## this will overwrite $text_anchor, $rotate_degree, $rotate_center_x, $rotate_center_y
-	if(    $width_limit
-		&& defined $width_limit_fontsizeTorotate
-		&& $font_size < abs($width_limit_fontsizeTorotate)
-	){
-		# first see vertical location, is the height is enough?
-		($anchor_height_Aref, $anchor_width_Aref) = 
-			&get_size_of_text_to_show(
-										font_family=>$font_family,
-										font_size=>abs($width_limit_fontsizeTorotate),
-										text=>$text
-									 );
-		$text_height = $anchor_height_Aref->[0] - $anchor_height_Aref->[1]; # above - below, because below is negative value.
-		$text_width  = $anchor_width_Aref->[0] + $anchor_width_Aref->[1]; # char width + gap width
-		if( $text_height <= $width_limit ){
-			$font_size = abs($width_limit_fontsizeTorotate);
-			# rotate
-			$rotate_center_x = $text_x;
-			$rotate_center_y = $text_y;
-			# X=sin(angle) => aX^2 + bX + c = 0
-			my $width_limit_in_equ = ( $text_anchor eq 'middle' ? $width_limit / 2 : $width_limit );
-			my $equ_a = $text_width ** 2 + $text_height ** 2;
-			my $equ_b = -2 * $width_limit_in_equ * $text_height;
-			my $equ_c = $width_limit_in_equ ** 2 - $text_width ** 2;
-			my $sin_angle = ( -1 * $equ_b + sqrt( $equ_b ** 2 - 4 * $equ_a * $equ_c ) ) / ( 2 * $equ_a );
-			my $cos_angle = sqrt( 1 - $sin_angle ** 2 );
-			$rotate_degree = atan2( $sin_angle, $cos_angle ) / $deg2rad;
-			$rotate_degree *= -1 if( $width_limit_fontsizeTorotate < 0 );
-			# debug
-			# die "$rotate_degree\ntext_width:$text_width\ntext_height:$text_height\nwidth_limit:$width_limit\n";
-			$text_anchor = ( ($width_limit_fontsizeTorotate < 0 && $text_anchor eq 'middle') ? 'start' : 'end');
-		}
-	}
 	# height adjust
 	if($height_adjust){
-		my $y_to_add = ($anchor_height_Aref->[0] + $anchor_height_Aref->[1]) / 2 * $height_adjust;
+		my $y_to_add = ($anchor_height_Aref->[0] + $anchor_height_Aref->[1]) / 2;
 		$text_y += $y_to_add;
 	}
 	# decode the font family
@@ -1157,9 +1104,11 @@ sub show_text_on_arc{
 
 	my $Usage = '
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# cx, [100]
 		# cy, [100]
@@ -1171,7 +1120,6 @@ sub show_text_on_arc{
 		# font_size, [12]
 		# text_col, ["black"]
 		# height_adjust, [0]
-		                Times of half-height to move the text down.
 		# height_limit, [0]
 		# degree_limit, [0]
 		                This is the arc degree occupied by text (width).
@@ -1194,15 +1142,11 @@ sub show_text_on_arc{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( $SVG_object, cx=>"10", cy=>"20", anchor_degree=>90, font_family=>"Times", font_size=>15, height_limit=>20 );
+		   subroutine( $SVG_object, { cx=>"10", cy=>"20", anchor_degree=>90, font_family=>"Times", font_size=>15, height_limit=>20 } );
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	# check part1
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
@@ -1285,12 +1229,12 @@ sub show_text_on_arc{
 			my $char_font_size   = $Sub_Features_Href->{font_size}->{$char_index} || $font_size;
 			# get size of this char
 			my ($char_anchor_height_Aref, $char_anchor_width_Aref) = 
-			&get_size_of_text_to_show(
+			&get_size_of_text_to_show({
 										font_family=>$char_font_family,
 										font_size=>$char_font_size,
 										text=>$char,
 										single_char_gap=> ($i != $#text_char)  # last char does not postfixed by gap with no following char.
-									 );
+									  });
 			# height stuff
 			$anchor_height{above}->[$i] = $char_anchor_height_Aref->[0];
 			$anchor_height{below}->[$i] = $char_anchor_height_Aref->[1];
@@ -1338,7 +1282,7 @@ sub show_text_on_arc{
 	# height adjust
 	my $y_to_add = 0;
 	if($height_adjust){
-		$y_to_add = ( max( @{$anchor_height{above}} ) + min( @{$anchor_height{below}} ) ) / 2 * $height_adjust;
+		$y_to_add = ( max( @{$anchor_height{above}} ) + min( @{$anchor_height{below}} ) ) / 2;
 	}
 	# show the char in the text one by one.
 	my $now_anchor_radian = $start_radian;
@@ -1347,7 +1291,7 @@ sub show_text_on_arc{
 		my $char = $Info_Aref->[2];
 		my $char_occupied_radian = $Info_Aref->[0] / $radius;
 		$now_anchor_radian += $char_occupied_radian / 2; # middle, half part
-		my ($text_cx,$text_cy) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$now_anchor_radian, radius=>$radius);
+		my ($text_cx,$text_cy) = get_coordinate_on_circle($cx, $cy, $now_anchor_radian, $radius);
 		my ($text_x,$text_y) = ($text_cx,$text_cy+$y_to_add);
 		## features and style
 		# "font_family", "font_size", "text_col", "text_to_center", "text_rotate_degree"
@@ -1419,8 +1363,8 @@ sub show_text_on_arc{
 			if(exists($Sub_Features_Href->{underline}->{$next_char_index})){
 				$rad_size += $Info_Aref->[1] / $radius; # gap
 			}
-			draw_an_arc(
-							$SVG_object,
+			draw_an_arc( $SVG_object,
+						{
 							cx=>$cx, cy=>$cy,
 							start_rad=>$start_rad, rad_size=>$rad_size, 
 							radius=>$arc_line_radius,
@@ -1428,6 +1372,7 @@ sub show_text_on_arc{
 							boundary_width=>$char_underline_width,
 					 		boundary_linecap=>'round',
 					 		draw_bool=>$draw_bool
+						}
 					   );
 		}
 		# update now_anchor_radian for next char
@@ -1445,31 +1390,29 @@ sub get_size_of_text_to_show{
 
 	my $Usage = '
 
-		Use as subroutine(key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# font_family, ["Arial"]
 		# font_size, [12]
 		# text, <required>
 		# single_char_gap, [0]
 		                  This is prepared for single char calculation in string shown by show_text_on_arc.
-		# return_HeightWid, [0]
 		--- help ----
 		# usage_print, [0]
 
 		Use options in anonymous hash, like 
-		   subroutine( font_family=>"Times", font_size=>15, text=>"test" );
+		   subroutine( { font_family=>"Times", font_size=>15, text=>"test" } );
 
 		It will return a array contains,
 		   ([anchor_above_height, anchor_below_heigh], [anchor_right_width, anchor_left_width])
 
 		';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($Options_Href) = @_;
 
 	if($Options_Href->{usage_print} || !defined($Options_Href->{text})){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -1483,14 +1426,11 @@ sub get_size_of_text_to_show{
 	my $font_size   = $Options_Href->{font_size} || 12;
 	my $text = $Options_Href->{text};
 	my $single_char_gap_bool = $Options_Href->{single_char_gap} || 0;
-	my $return_HeightWid = $Options_Href->{return_HeightWid} || 0;
 
 	# transforming ratio
-	my ($font_fam_basal, $transforming_ratio) = 
-		&confirm_transform_ratio(
-									font_family=>$font_family,
-									font_size=>$font_size
-								);
+	my ($font_fam_basal, $transforming_ratio) = &confirm_transform_ratio({ font_family=>$font_family,
+																		   font_size=>$font_size
+																		  });
 	# font basal
 	my $font_fam_Href = $Font_Size{$font_fam_basal};
 	my $char_table_Href = $font_fam_Href->{char_table};
@@ -1594,18 +1534,7 @@ sub get_size_of_text_to_show{
 	my $gap_width  = (length($text)-$to_minus) * ($basal_blank_size * $basal_gap_ratio);
 	#my $anchor_left_width   = $transforming_ratio * sum(@{$anchor_width{left}});
 
-	if( $return_HeightWid ){
-		return (
-				$anchor_above_height - $anchor_below_height,  # above - below, because below is negative value.
-				         $size_width + $gap_width             # char width + gap width
-			   );
-	}
-	else{
-		return (
-				[ $anchor_above_height, $anchor_below_height ],
-				         [ $size_width, $gap_width ]
-			   );
-	}
+	return ( [$anchor_above_height, $anchor_below_height], [$size_width, $gap_width] );
 }
 
 #--- decode the symbol of each char in certain font family ---

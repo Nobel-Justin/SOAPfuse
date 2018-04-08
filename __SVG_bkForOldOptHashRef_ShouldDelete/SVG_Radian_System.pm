@@ -7,23 +7,17 @@ require Exporter;
 
 
 #----- systemic variables -----
-our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-my ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
+our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS, $VERSION, $AUTHOR, $MAIL);
 @ISA = qw(Exporter);
 @EXPORT = qw($PI $deg2rad get_coordinate_on_circle normalize_radian draw_an_arc);
 push @EXPORT , qw();
 @EXPORT_OK = qw($PI $deg2rad);
 %EXPORT_TAGS = ( DEFAULT => [qw()],
                  OTHER   => [qw()]);
-
-$MODULE_NAME = 'SVG_Radian_System';
-#----- version --------
-$VERSION = "0.14";
-$DATE = '2018-01-16';
-
-#----- author -----
-$AUTHOR = 'Wenlong Jia';
-$EMAIL = 'wenlongkxm@gmail.com';
+#----- version and author --------
+$VERSION = "0.13";
+$AUTHOR = "Wenlong Jia";
+$MAIL = 'wenlongkxm@gmail.com';
 
 #--------- degree radian transform (basic) --------#
 our $PI = 3.1415926;
@@ -40,14 +34,8 @@ my @functoion_list = (
 #--- Calculate the coordinates on the cicle in SVG coordinates system ---#
 #-------- Input: $centre_x, $centre_y, $rad, $radius -------#
 sub get_coordinate_on_circle{
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my %parm = @_;
-	my $centre_x = $parm{cx};
-	my $centre_y = $parm{cy};
-	my $rad      = $parm{rad}; # the radian rotated from the zero clock.
-	my $radius   = $parm{radius};
-
+	# $rad is the radian rotated from the zero clock.
+	my ($centre_x, $centre_y, $rad, $radius) = @_;
 	my $x = $centre_x + sin($rad) * $radius;
 	my $y = $centre_y - cos($rad) * $radius;
 	return ($x, $y);
@@ -55,11 +43,7 @@ sub get_coordinate_on_circle{
 
 #------- normalize the radian in [0, 2*$PI) ------#
 sub normalize_radian{
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my %parm = @_;
-	my $object_Sref = $parm{radian_Sref};
-
+	my ($object_Sref) = @_;
 	until($$object_Sref >= 0 && $$object_Sref < 2 * $PI){
 		if($$object_Sref < 0){
 			$$object_Sref += 2 * $PI;
@@ -88,9 +72,11 @@ sub draw_an_arc{
                                      [centre] o (cx,cy)
 
 
-		Use as subroutine($SVG_object, key1=>value1, key2=>value2, ...);
+		Input is Ref of Options Hash, as
 
-		# Options key, enclosed by [ ] means default
+		# my ($SVG_object, $Options_Href) = @_;
+
+		# Options_Href, enclosed by [ ] means default
 		--- basic structure ---
 		# cx, [100]
 		# cy, [100]
@@ -109,15 +95,11 @@ sub draw_an_arc{
 		# usage_print, [0]
 
 		Use options in anonymous hash, like
-		   subroutine( $SVG_object, cx=>120, cy=>120 );
+		   subroutine( $SVG_object, { cx=>120, cy=>120 } );
 
 	';
 
-	# options
-	shift if ($_[0] =~ /::$MODULE_NAME/);
-	my $SVG_object = shift @_;
-	my %parm = @_;
-	my $Options_Href = \%parm;
+	my ($SVG_object, $Options_Href) = @_;
 
 	if(!defined($SVG_object) || $Options_Href->{usage_print}){
 		warn "\nThe Usage of $sub_routine_name:\n";
@@ -143,8 +125,8 @@ sub draw_an_arc{
 
 	#---- Arc
 	# pos
-	my ($x1,$y1) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>$start_rad, radius=>$radius);
-	my ($x2,$y2) = get_coordinate_on_circle(cx=>$cx, cy=>$cy, rad=>($start_rad + $rad_size), radius=>$radius);
+	my ($x1,$y1) = get_coordinate_on_circle($cx,$cy,$start_rad, $radius);
+	my ($x2,$y2) = get_coordinate_on_circle($cx,$cy,$start_rad + $rad_size, $radius);
 	# flag
 	my $flag_1 = ($rad_size > $PI) ? 1 : 0;
 

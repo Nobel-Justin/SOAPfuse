@@ -18,8 +18,8 @@ our ($VERSION, $DATE, $AUTHOR, $EMAIL);
 %EXPORT_TAGS = ( DEFAULT => [qw()]);
 
 #----- version --------
-$VERSION = "0.04";
-$DATE = '2016-01-08';
+$VERSION = "0.05";
+$DATE = '2017-06-12';
 
 #----- author -----
 $AUTHOR = 'Wenlong Jia';
@@ -80,14 +80,29 @@ sub load_gtf_info{
 		my ($trans_name) = (/transcript_name\s\"([^\"]+)\"/);
 		($trans_name ||= 'NA-'.$trans_ENSid) =~ s/[\(\)\/\\\s]+/_/g;
 
+		# former versions (before v75) do not contain.
 		my ($transcript_source) = (/transcript_source\s\"([^\"]+)\"/);
-		$transcript_source ||= 'NA'; # former versions (before v75) do not contain.
+		$transcript_source ||= 'NA';
 
+		# former versions (before v77) do not contain.
 		my ($transcript_version) = (/transcript_version\s\"([^\"]+)\"/);
-		$transcript_version = $transcript_version ? ('v'.$transcript_version) : 'NA'; # former versions (before v77) do not contain.
+		$transcript_version = $transcript_version ? ('v'.$transcript_version) : 'NA';
 
+		# former versions (long-long ago..) do not contain, but list it at column NO.2
 		my ($transcript_biotype) = (/transcript_biotype\s\"([^\"]+)\"/);
-		$transcript_biotype ||= $gtf_source_or_transBiotype; # former versions (long-long ago..) do not contain, but list it at column NO.2
+		$transcript_biotype ||= $gtf_source_or_transBiotype;
+
+		# specific for FuseSV virus meta-info
+		my ($locus_tag) = (/locus_tag\s\"([^\"]+)\"/);
+		$locus_tag ||= 'N/A';
+
+		# specific for FuseSV virus meta-info
+		my ($note) = (/note\s\"([^\"]+)\"/);
+		$note ||= 'N/A';
+
+		# specific for FuseSV virus meta-info
+		my ($product) = (/product\s\"([^\"]+)\"/);
+		$product ||= 'N/A';
 
 		# load attributes
 		$gene->{trans_info}->{$trans_ENSid}->{ENSid} = $trans_ENSid;
@@ -96,6 +111,9 @@ sub load_gtf_info{
 		$gene->{trans_info}->{$trans_ENSid}->{trans_biotype} = $transcript_biotype;
 		$gene->{trans_info}->{$trans_ENSid}->{trans_ori_name} = $trans_name;
 		$gene->{trans_info}->{$trans_ENSid}->{trans_use_name} = $trans_name;
+		$gene->{trans_info}->{$trans_ENSid}->{locus_tag} = $locus_tag;
+		$gene->{trans_info}->{$trans_ENSid}->{note} = $note;
+		$gene->{trans_info}->{$trans_ENSid}->{product} = $product;
 	}
 
 	# exon info of transcript
@@ -225,6 +243,8 @@ sub judge_the_cytoband{
 sub write_trans_psl_info{
 	my $gene = shift;
 	my $psl_fh = shift;
+	my $show_metainfo = shift;
+	$show_metainfo ||= 0;
 	my $gene_use_name = $gene->{gene_use_name};
 	my $strand = $gene->{strand};
 	my $refseg = $gene->{ref_seg};
@@ -235,6 +255,10 @@ sub write_trans_psl_info{
 		my $trans_source = $trans->{source};
 		my $trans_version = $trans->{trans_version};
 		my $trans_biotype = $trans->{trans_biotype};
+		# meta-info
+		my $trans_locus_tag = $trans->{locus_tag};
+		my $trans_note = $trans->{note};
+		my $trans_product = $trans->{product};
 		# protein_coding info, if available
 		my @start_codon = (exists($trans->{start_codon}))?(sort {$a<=>$b} keys %{$trans->{start_codon}}):();
 		my @stop_codon = (exists($trans->{stop_codon}))?(sort {$a<=>$b} keys %{$trans->{stop_codon}}):();
@@ -290,11 +314,12 @@ sub write_trans_psl_info{
 		#-------------------------------------------------------#
 		print $psl_fh $trans_source."\t";
 		print $psl_fh $trans_version."\t";
-		print $psl_fh "0\t" for (3 .. 4);
+		print $psl_fh ($show_metainfo) ? "$trans_locus_tag\t" : "0\t";
+		print $psl_fh ($show_metainfo) ? "$trans_note\t" : "0\t";
 		print $psl_fh join(',',@start_codon).",\t";
 		print $psl_fh join(',',@stop_codon).",\t";
 		print $psl_fh $protein_id."\t";
-		print $psl_fh "0\t";
+		print $psl_fh ($show_metainfo) ? "$trans_product\t" : "0\t";
 		print $psl_fh $strand."\t";
 		print $psl_fh $trans_use_name."\t";
 		print $psl_fh $_trans_ENSid."\t";

@@ -12,16 +12,17 @@ require Exporter;
 
 #----- systemic variables -----
 our (@ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
-our ($VERSION, $DATE, $AUTHOR, $EMAIL);
+our ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
 @ISA = qw(Exporter);
 @EXPORT = qw(read_GTF read_cytoband add_refseg_cytoband create_gene_PSL create_trans_PSL check_Start_codon_Seq);
 @EXPORT_OK = qw();
 %EXPORT_TAGS = ( DEFAULT => [qw()],
                  OTHER   => [qw()]);
 
+$MODULE_NAME = 'GTF';
 #----- version --------
-$VERSION = "0.03";
-$DATE = '2016-01-08';
+$VERSION = "0.06";
+$DATE = '2018-01-30';
 
 #----- author -----
 $AUTHOR = 'Wenlong Jia';
@@ -29,6 +30,7 @@ $EMAIL = 'wenlongkxm@gmail.com';
 
 #-------- read GTF file --------
 sub read_GTF{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href,$gtf_file,$refseg_transform_list,$gtf_gene_source_Aref) = @_;
 
 	# read refseg transforming list
@@ -52,6 +54,7 @@ sub read_GTF{
 #-------- add the refseg cytoband info -------
 # optional
 sub add_refseg_cytoband{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href,$cytoband_Href) = @_;
 
 	for my $_gene_ENSid (keys %$GTF_Info_Href){
@@ -64,10 +67,12 @@ sub add_refseg_cytoband{
 #-------- read cytoband info --------
 # optional
 sub read_cytoband{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($cytoband_Href,$cytoband_file) = @_;
 
 	open (CBD, Try_GZ_Read($cytoband_file)) || die"fail $cytoband_file: $!\n";
 	while(<CBD>){
+		next if(/^#/);
 		my ($refseg,$st,$ed,$band) = (split)[0,1,2,3];
 		$cytoband_Href->{$refseg}->{$.} = [$band,$st,$ed];
 	}
@@ -78,11 +83,12 @@ sub read_cytoband{
 
 #-------- creat trans psl file --------
 sub create_trans_PSL{
-	my ($GTF_Info_Href,$PSL_file) = @_;
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
+	my ($GTF_Info_Href,$PSL_file,$show_metainfo) = @_;
 
 	open (my $PSL_fh, Try_GZ_Write($PSL_file)) || die "fail create $PSL_file: $!\n";
 	for my $_gene_ENSid (sort keys %$GTF_Info_Href){
-		$GTF_Info_Href->{$_gene_ENSid}->write_trans_psl_info($PSL_fh);
+		$GTF_Info_Href->{$_gene_ENSid}->write_trans_psl_info($PSL_fh, $show_metainfo||0);
 	}
 	close $PSL_fh;
 
@@ -91,6 +97,7 @@ sub create_trans_PSL{
 
 #-------- creat gene psl file --------
 sub create_gene_PSL{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href,$PSL_file) = @_;
 
 	open (my $PSL_fh, Try_GZ_Write($PSL_file)) || die "fail create $PSL_file: $!\n";
@@ -104,6 +111,7 @@ sub create_gene_PSL{
 
 #-------- read the file contains the refseg transform information --------
 sub read_refseg_transform{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($refseg_transform_list,$_refseg_transform_Href) = @_;
 
 	open (RT, Try_GZ_Read($refseg_transform_list)) || die "cannot read $refseg_transform_list: $!\n";
@@ -119,6 +127,7 @@ sub read_refseg_transform{
 
 #------- load the initial gtf info to GTF_Info type from the gtf file -------
 sub load_GTF_Info_type_from_gtf{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href, $gtf_file, $_refseg_transform_Href, $user_set_transform_list_bool, $gtf_gene_source_Sref) = @_;
 
 	open (my $GTF_fh, Try_GZ_Read($gtf_file)) || die "cannot read $gtf_file: $!\n";
@@ -164,6 +173,7 @@ sub load_GTF_Info_type_from_gtf{
 
 #------- refine the codon number of transcript -------
 sub refine_GTF_info{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href) = @_;
 
 	for my $_gene_ENSid (keys %$GTF_Info_Href){
@@ -175,6 +185,7 @@ sub refine_GTF_info{
 
 #------- refine the name of gene and transcript -------
 sub refine_names{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href) = @_;
 
 	my (%_genename_count,%_transname_count);
@@ -206,6 +217,7 @@ sub refine_names{
 
 #----------- refine the start codon seq according to the genome ---------
 sub check_Start_codon_Seq{
+	if($_[0]=~/::$MODULE_NAME/) { shift; }
 	my ($GTF_Info_Href,$Start_codon_Aref,$whole_genome) = @_;
 
 	warn "check strat codon sequence now...\n";
