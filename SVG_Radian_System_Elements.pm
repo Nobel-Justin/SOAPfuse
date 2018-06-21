@@ -20,8 +20,8 @@ push @EXPORT , qw();
 
 $MODULE_NAME = 'SVG_Radian_System_Elements';
 #----- version --------
-$VERSION = "0.25";
-$DATE = '2018-02-09';
+$VERSION = "0.26";
+$DATE = '2018-04-16';
 
 #----- author -----
 $AUTHOR = 'Wenlong Jia';
@@ -100,6 +100,8 @@ sub draw_circle_seg{
 		# arrow_ori, ["clockwise"] or "anti-clockwise"
 		# arrow_span_perct, [9]
 		# arrow_maxArcLen, [optional]
+		# arrow_draw_only, [0]
+		            Only show arrow.
 		--- text ---
 		# text, [""]
 		# font_family, ["Arial"]
@@ -164,6 +166,7 @@ sub draw_circle_seg{
 	my $arrow_maxArcLen = $Options_Href->{arrow_maxArcLen};
 	my $arrow_color		= $Options_Href->{arrow_color} || 'gray';
 	my $arrow_ori		= $Options_Href->{arrow_ori} || 'clockwise';
+	my $arrow_draw_only = $Options_Href->{arrow_draw_only} || 0;
 	## text
 	my $text = $Options_Href->{text} || '';
 	my $font_family = $Options_Href->{font_family} || 'Arial';
@@ -212,7 +215,7 @@ sub draw_circle_seg{
 						'stroke-width'=>$seg_boud_width,
 						fill=>$seg_fill_col,
 						opacity=>$seg_opacity
-					  ) if($draw_bool);
+					  ) if($draw_bool && !$arrow_draw_only);
 	# bold sides
 	if($seg_bold_side !~ /^0$/){
 		# sharing style

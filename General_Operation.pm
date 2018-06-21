@@ -32,6 +32,9 @@ our ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
 			  write_fasta_file
 			  getStrUnitRepeatTime
 			  file_exist
+			  GetRandBool
+			  PickRandAele
+			  baseQ_char2score
 			/;
 @EXPORT_OK = qw();
 %EXPORT_TAGS = ( DEFAULT => [qw()],
@@ -39,8 +42,8 @@ our ($VERSION, $DATE, $AUTHOR, $EMAIL, $MODULE_NAME);
 
 $MODULE_NAME = 'General_Operation';
 #----- version --------
-$VERSION = "0.24";
-$DATE = '2018-04-04';
+$VERSION = "0.29";
+$DATE = '2018-05-31';
 
 #----- author -----
 $AUTHOR = 'Wenlong Jia';
@@ -65,6 +68,10 @@ my @functoion_list = qw/
 						stout_and_sterr
 						write_fasta_file
 						getStrUnitRepeatTime
+						file_exist
+						GetRandBool
+						PickRandAele
+						baseQ_char2score
 					 /;
 
 #-------- try to merge genome region ---------#
@@ -524,6 +531,7 @@ sub stout_and_sterr{
 	my %parm = @_;
 	my $stderr = $parm{stderr} || 0;
 
+	$| = 1; # no buffer
 	# default STDOUT sololy
 	print STDOUT "$content";
 	# STDERR additionally, when stated
@@ -655,9 +663,9 @@ sub file_exist{
 	my $filePath = $parm{filePath};
 	my $alert = $parm{alert} || 0;
 
-	$filePath = abs_path( $filePath );
 	if(    !defined $filePath
-		|| !-e $filePath
+		|| length($filePath) == 0
+		|| !-e abs_path( $filePath )
 		|| `file $filePath` =~ /broken symbolic link/
 	){
 		warn_and_exit "<ERROR>\tFile does not exist:\n"
@@ -667,6 +675,55 @@ sub file_exist{
 	else{
 		return 1;
 	}
+}
+
+#--- get a random probability ---
+sub GetRandBool{
+	shift @_ if(@_ && $_[0] =~ /::$MODULE_NAME/);
+	my %parm = @_;
+	my $Aref = $parm{Aref};
+	my $RandCmp = $parm{RandCmp} || 0.5;
+	my $verbose = $parm{verbose} || 0;
+
+	$RandCmp = &PickRandAele( Aref => $Aref ) if( defined $Aref );
+	my $RandProb = rand(1);
+	my $RandBool = ( ($RandProb < $RandCmp) || 0 );
+
+	if( $verbose ){
+		$RandProb = sprintf "%.3f", $RandProb;
+		stout_and_sterr "[RAND]\tRandProb: $RandProb, RandCmp: $RandCmp, RandBool: $RandBool\n";
+	}
+
+	return $RandBool;
+}
+
+#--- randomly pick one element from given Array (ref) ---
+sub PickRandAele{
+	shift @_ if($_[0] =~ /::$MODULE_NAME/);
+	my %parm = @_;
+	my $Aref = $parm{Aref};
+	my $Acnt = scalar(@$Aref);
+	if( $Acnt == 0 ){
+		warn_and_exit "<ERROR>\tempty array in PickRandAele func.\n";
+	}
+	elsif( $Acnt == 1 ){
+		return $Aref->[0];
+	}
+	else{
+		return $Aref->[int(rand($Acnt))];
+	}
+}
+
+#--- convert quality char to score ---
+sub baseQ_char2score{
+	shift @_ if($_[0] =~ /::$MODULE_NAME/);
+	my %parm = @_;
+	my $Q_char = $parm{Q_char};
+	# set 33 for Sanger and Illumina 1.8+.
+	# set 64 for Solexa, Illumina 1.3+ and 1.5+.
+	my $Q_offset = $parm{Q_offset} || 33;
+
+	return ( ord($Q_char) - $Q_offset );
 }
 
 1; ## tell the perl script the successful access of this module.
